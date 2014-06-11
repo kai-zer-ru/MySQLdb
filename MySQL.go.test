@@ -1,0 +1,50 @@
+package main
+
+import (
+	"k12golibs/MySQLdb"
+	"fmt"
+	"database/sql"
+)
+
+func main() {
+	db := MySQLdb.MySqlDB{Address:"10.200.200.6:3306",DbName:"Pimp",
+		User:"toor",Password:"aY5kZ2rJvCNQccwMSEz9F"}
+	db.Connect()
+	row := db.GetOne("SELECT UNIX_TIMESTAMP(NOW()) a")
+
+	var a uint32
+	err := row.Scan(&a)
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(a)
+
+	rows,qErr := db.GetArray("SELECT ParamName,ParamValue FROM app_config")
+	if qErr != nil {
+		panic(fmt.Sprintf("Error in query users. errDB = %s",qErr))
+	}
+	type app_config struct {
+		param_name string
+		param_value string
+	}
+	for rows.Next(){
+		var config app_config
+		if errScan := rows.Scan(&config.param_name,&config.param_value); errScan != nil {
+			switch {
+				case errScan == sql.ErrNoRows:
+					panic("No rows!")
+					return
+				case errScan != nil:
+					panic(fmt.Sprintf("Error with Scan! errScan = %s",errScan))
+					continue
+			}
+		} else {
+			fmt.Println(config)
+		}
+	}
+
+	row,err := db.Execute("INSERT INTO tmp_tesp (prosto) values (123)")
+	InsertID,_ := row.LastInsertId()
+	AffectedRows,_ := row.RowsAffected()
+}
+
